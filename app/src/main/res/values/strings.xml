@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Android Notification Channels Demo</string>
+    <string name="action_settings">Settings</string>
+    <string name="send_notification">Send Notification</string>
+    <string name="tech">Technology</string>
+    <string name="global">Global News</string>
+    <string name="change_notification_settings">Change Notification Settings</string>
+    <string name="delete_channel">Delete Notification Channel</string>
+</resources>
