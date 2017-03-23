@@ -6,4 +6,6 @@
     <string name="global">Global News</string>
     <string name="change_notification_settings">Change Notification Settings</string>
     <string name="delete_channel">Delete Notification Channel</string>
+    <string name="select_notification_channel">Select a Notification Channel</string>
+    <string name="delete_notification">Delete Notification Channel</string>
 </resources>
