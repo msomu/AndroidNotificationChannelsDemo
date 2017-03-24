@@ -1,6 +1,7 @@
 package in.msomu.notificationdemo;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by msomu on 23/03/17.
@@ -54,5 +55,24 @@ public class Utils {
         newsArrayList.add(new News("ZTE lacunches first 5G mobiles in MWC 2017", "Smartphones"));
         newsArrayList.add(new News("Hyperloop One is in early talks with the Indian government", "General"));
         return newsArrayList;
+    }
+
+    public static News getNews(String channelId) {
+        ArrayList<News> newsList = getList(channelId);
+        Random r = new Random();
+        int Low = 0;
+        int High = newsList.size() - 1;
+        int result = r.nextInt(High - Low) + Low;
+        return newsList.get(result);
+    }
+
+    public static ArrayList<News> getList(String channelId) {
+        ArrayList<News> channelNews = new ArrayList<>();
+        for (News news : generateRandomNews()) {
+            if (news.getCategoryId().equals(channelId)) {
+                channelNews.add(news);
+            }
+        }
+        return channelNews;
     }
 }

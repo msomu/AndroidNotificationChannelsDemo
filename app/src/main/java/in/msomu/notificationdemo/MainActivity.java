@@ -7,8 +7,6 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
-import android.media.AudioAttributes;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
@@ -20,6 +18,8 @@ import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private String mSelectedChannelId = "";
     int notifyID = 1;
     private ArrayList<News> newsArrayList;
+    private RadioButton selectedRadio;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
         Button changeNotification = (Button) findViewById(R.id.buttonChangeNotification);
         Button deleteNotification = (Button) findViewById(R.id.buttonDeleteNotification);
         final Spinner channelSpinners = (Spinner) findViewById(R.id.spinnerChannel);
+//        final RadioButton radioDaily = (RadioButton) findViewById(R.id.radioButtonDaily);
+//        final RadioButton radioWeekly = (RadioButton) findViewById(R.id.radioButtonWeekly);
+        final RadioGroup radioGroup = (RadioGroup) findViewById(R.id.radioGroupChannelGroup);
+        radioGroup.check(R.id.radioButtonDaily);
+        selectedRadio = (RadioButton) findViewById(R.id.radioButtonDaily);
 
         //Getting some dummy news
         newsArrayList = Utils.generateRandomNews();
@@ -58,7 +64,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
                 mSelectedChannelId = adapterView.getItemAtPosition(position).toString().toLowerCase();
-                checkStatusOfNotification(mSelectedChannelId);
+                int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
+                selectedRadio = (RadioButton) findViewById(checkedRadioButtonId);
+                checkStatusOfNotification(mSelectedChannelId,selectedRadio.getText().toString().toLowerCase());
             }
 
             @Override
@@ -66,46 +74,59 @@ public class MainActivity extends AppCompatActivity {
                 mSelectedChannelId = "";
             }
         });
-        for (String uniqueCategory : uniqueCategories) {
-            createNotificationChannel(uniqueCategory.toLowerCase(), uniqueCategory);
-        }
         // Create two notification group for Daily and Weekly
-        createNotificationChannelGroup("daily");
-        createNotificationChannelGroup("weekly");
+        createNotificationChannelGroup("daily","Daily News");
+        createNotificationChannelGroup("weekly","Weekly News");
+        for (String uniqueCategory : uniqueCategories) {
+            createNotificationChannel(uniqueCategory.toLowerCase()+"_daily", uniqueCategory, "daily");
+            createNotificationChannel(uniqueCategory.toLowerCase()+"_weekly", uniqueCategory, "weekly");
+        }
+
 
         triggerNotification.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!TextUtils.isEmpty(mSelectedChannelId))
-                    postNotification(mSelectedChannelId);
+                if (!TextUtils.isEmpty(mSelectedChannelId)) {
+                    int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
+                    selectedRadio = (RadioButton) findViewById(checkedRadioButtonId);
+                    postNotification(mSelectedChannelId,selectedRadio.getText().toString().toLowerCase());
+                    notifyID++;
+                }
             }
         });
         changeNotification.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!TextUtils.isEmpty(mSelectedChannelId))
-                    changeNotificationSettings(mSelectedChannelId);
+                if (!TextUtils.isEmpty(mSelectedChannelId)){
+                    int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
+                    selectedRadio = (RadioButton) findViewById(checkedRadioButtonId);
+                    changeNotificationSettings(mSelectedChannelId,selectedRadio.getText().toString().toLowerCase());
+                }
             }
         });
         deleteNotification.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!TextUtils.isEmpty(mSelectedChannelId))
-                    deleteNotification(mSelectedChannelId);
+                if (!TextUtils.isEmpty(mSelectedChannelId)){
+                    int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
+                    selectedRadio = (RadioButton) findViewById(checkedRadioButtonId);
+                    deleteNotificationChannel(mSelectedChannelId,selectedRadio.getText().toString().toLowerCase());
+                }
             }
         });
     }
 
-    private void checkStatusOfNotification(String channelId) {
+    private void checkStatusOfNotification(String channelId,String groupName) {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationChannel notificationChannel = mNotificationManager.getNotificationChannel(channelId);
+        NotificationChannel notificationChannel =
+                mNotificationManager.getNotificationChannel(channelId+"_"+groupName);
         int importance = notificationChannel.getImportance();
         int lightColor = notificationChannel.getLightColor();
-        int lockscreenVisibility = notificationChannel.getLockscreenVisibility();
+        int lockScreenVisibility = notificationChannel.getLockscreenVisibility();
         String group = notificationChannel.getGroup();
         CharSequence name = notificationChannel.getName();
-        String importanceString = "";
+        String importanceString;
         switch (importance) {
             case NotificationManager.IMPORTANCE_DEFAULT:
                 importanceString = "IMPORTANCE_DEFAULT";
@@ -135,75 +156,52 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Name : " + name +
                         "'\n' Importance : " + importanceString +
                         " '\n' Light Color : " + lightColor +
-                        "'\n' Lock Screen : " + lockscreenVisibility +
+                        "'\n' Lock Screen : " + lockScreenVisibility +
                         "'\n' Group : " + group
                 , Toast.LENGTH_SHORT).show();
     }
 
-    private void changeNotificationSettings(String mChannelId) {
+    private void changeNotificationSettings(String mChannelId,String group) {
         Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
-//        NotificationManager mNotificationManager =
-//                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//        NotificationChannel mChannel = mNotificationManager.getNotificationChannel(mChannelId);
-        intent.putExtra(Settings.EXTRA_CHANNEL_ID, mChannelId);
+        intent.putExtra(Settings.EXTRA_CHANNEL_ID, mChannelId+"_"+group);
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
         startActivity(intent);
     }
 
-    private void deleteNotification(String mChannelId) {
+    private void deleteNotificationChannel(String mChannelId,String group) {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.deleteNotificationChannel(mChannelId);
+        mNotificationManager.deleteNotificationChannel(mChannelId+"_"+group);
     }
 
-    private void postNotification(String channelId) {
-        ArrayList<News> newsList = getList(channelId);
-        Random r = new Random();
-        int Low = 0;
-        int High = newsList.size() - 1;
-        int result = r.nextInt(High - Low) + Low;
-        News news = newsList.get(result);
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        // Create a notification and set the notification channel.
-        Notification notification = new Notification.Builder(MainActivity.this, channelId)
+    private void postNotification(String channelId,String group) {
+        News news = Utils.getNews(channelId);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        Notification notification = new Notification.Builder(MainActivity.this, channelId+"_"+group)
                 .setContentTitle(news.getCategory())
                 .setContentText(news.getTitle())
                 .setSmallIcon(R.drawable.bookmark)
+                .setGroup(group)
                 .build();
-        // Issue the notification.
         mNotificationManager.notify(notifyID, notification);
-        notifyID++;
     }
 
-    private ArrayList<News> getList(String channelId) {
-        ArrayList<News> channelNews = new ArrayList<>();
-        for (News news : newsArrayList) {
-            if (news.getCategoryId().equals(channelId)) {
-                channelNews.add(news);
-            }
-        }
-        return channelNews;
-    }
-
-    private void createNotificationChannelGroup(String groupId) {
-        // The user visible name of the group.
-        CharSequence name = getString(R.string.global);
-        ;
+    private void createNotificationChannelGroup(String groupId,String groupName) {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.createNotificationChannelGroup(new NotificationChannelGroup(groupId, name));
+        mNotificationManager.createNotificationChannelGroup(new NotificationChannelGroup(groupId, groupName));
     }
 
-    private void createNotificationChannel(String mChannelId, String channelName) {
+    private void createNotificationChannel(String mChannelId, String channelName, String groupName) {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        int importance = NotificationManager.IMPORTANCE_LOW;
-        NotificationChannel mChannel = new NotificationChannel(mChannelId, channelName, importance);
-        // Configure the notification channel.
+        NotificationChannel mChannel =
+                new NotificationChannel(mChannelId, channelName,
+                        NotificationManager.IMPORTANCE_LOW);
         mChannel.enableLights(true);
-        // Sets the notification light color for notifications posted to this
-        // channel, if the device supports this feature.
         mChannel.setLightColor(Color.RED);
+        mChannel.setGroup(groupName);
         mChannel.enableVibration(true);
         mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
         mNotificationManager.createNotificationChannel(mChannel);
